@@ -2,4 +2,4 @@
 damn, nice
 
 
-"Shinzo Sasagayo!" - Achyut Bajpayee, Captain of this Assignment 
+"Shinzo Sasagayo!" - Achyut Bajpai, Captain of this Assignment 
