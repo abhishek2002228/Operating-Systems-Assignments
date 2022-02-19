@@ -8,6 +8,9 @@
 // Math
 #include <math.h>
 
+// Time to solve
+#include <time.h>
+
 // Fork/ Proc related headers
 #include<unistd.h>
 #include<sys/wait.h>
@@ -51,7 +54,7 @@ int check(int board[36][36], int row, int col, int c, int s){
         if(board[i][col] != 0 && board[i][col] == c) return 0; //check row
         if(board[row][i] != 0 && board[row][i] == c) return 0; //check column
         if(board[ms_size * (row / ms_size) + i / ms_size][ ms_size * (col / ms_size) + i % ms_size] != 0 && 
-board[ms_size * (row / ms_size) + i / ms_size][ms_size * (col / ms_size) + i % ms_size] == c) return 0; //check 3*3 block
+board[ms_size * (row / ms_size) + i / ms_size][ms_size * (col / ms_size) + i % ms_size] == c) return 0; //check sqrt(s)*sqrt(s) block
     }
     return 1;
 }
@@ -94,7 +97,12 @@ int main(int argc, char *argv[]) {
 	/* Do your thing here */
 	print_grid(size,grid);
 	printf("Now solving \n");
+	clock_t t;
+	t = clock();
 	solve(grid,size);
+	t = clock()-t;
+    double time_taken = ((double)t)/CLOCKS_PER_SEC;
 	print_grid(size, grid);
+	printf("took %f seconds to solve \n", time_taken);
 	return 0;
 }
