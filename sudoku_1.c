@@ -18,29 +18,12 @@
 // Error handling
 #include<errno.h>
 #include <assert.h>
-#include <string.h>
 
 // global variable to store minisquare size;
 int ms_size;
 
 // compile command
 // gcc -pthread sudoku.c -o sudoku.out -lm
-
-#define NUM_THREADS 6
-
-typedef struct {
-	long int begin;
-	long int end;
-	int row;
-	int column;
-	int s;
-	int t_id;
-	int lr_fit;
-	int board[36][36];
-} lookup_range;
-
-lookup_range lr_arr[NUM_THREADS];
-pthread_t threads[NUM_THREADS];
 
 
 void read_grid_from_file(int size, char *ip_file, int grid[36][36]) {
@@ -76,68 +59,19 @@ board[ms_size * (row / ms_size) + i / ms_size][ms_size * (col / ms_size) + i % m
     return 1;
 }
 
-void *func(void *val){
-	lookup_range *l = val;
-	printf("Working on row %d column %d thread %d \n",l->row,l->column,l->t_id);
-	for(int i = l->begin; i <= l->end; i++){
-		if(check(l->board, l->row,l->column, i,l->s) == 1){
-			l->board[l->row][l->column] = i;
-			printf(" settled on %d on thread %d \n",i, l->t_id);
-			l->lr_fit = 1;
-			return NULL;
-			// if(solve(l->board,l->s,threads)){
-			// 	return NULL;
-			// }else{
-			// 	l->board[l->row][l->column] = 0;
-			// }
-		}
-	}
-}
-
-int solve(int board[36][36], int s, pthread_t t[NUM_THREADS]) {
+int solve(int board[36][36], int s) {
     for(int i = 0; i < s; i++){
         for(int j = 0; j < s; j++){
             if(board[i][j] == 0){
-            	printf(" Found empty at row %d and column %d \n",i,j);
-            	// spawn ms_size threads;
-            	for(int k = 0; k < ms_size; k++){
-            		 memcpy(lr_arr[k].board, board, sizeof (int) * s* s);
-
-            		lr_arr[k].begin = (s/ms_size)*k +1;
-            		lr_arr[k].end = ((s/ms_size)*(k+1));
-            		lr_arr[k].row = i;
-            		lr_arr[k].column = j;
-            		lr_arr[k].t_id = k;
-            		lr_arr[k].s = s;
-            		lr_arr[k].lr_fit = 0;
-            		if(pthread_create(&t[k],NULL,func, (void *)&lr_arr[k])){
-			// Error happened.
-						printf("Error making thread %d \n", k);
-						exit(1);
-					}
-            	}
-
-            	for(int k = 0; k < ms_size; k++){
-
-					if(lr_arr[k].lr_fit == 1){
-						memcpy(board,lr_arr[k].board,sizeof(board));
-						printf("kuch hoa %d \n",k);
-						solve(board,s,threads);
-					}
-
-					pthread_join(t[k],NULL);
-					
-				}
-
-                // for(int c = 1; c <= s; c++){
-                //     if(check(board, i, j, c,s) == 1){
-                //         board[i][j] = c; 
-                //         if(solve(board,s,t))
-                //             return 1; 
-                //         else
-                //             board[i][j] = 0; 
-                //     }
-                // }
+                for(int c = 1; c <= s; c++){
+                    if(check(board, i, j, c,s) == 1){
+                        board[i][j] = c; 
+                        if(solve(board,s))
+                            return 1; 
+                        else
+                            board[i][j] = 0; 
+                    }
+                }
                 return 0;
             }
         }
@@ -165,10 +99,11 @@ int main(int argc, char *argv[]) {
 	printf("Now solving \n");
 	clock_t t;
 	t = clock();
-	solve(grid,size,threads);
+	solve(grid,size);
 	t = clock()-t;
     double time_taken = ((double)t)/CLOCKS_PER_SEC;
 	print_grid(size, grid);
 	printf("took %f seconds to solve \n", time_taken);
 	return 0;
 }
+
