@@ -25,6 +25,7 @@ int ms_size;
  
 // compile command
 // gcc -pthread sudoku.c -o sudoku.out -lm
+
 /* 
 Abhishek Revinipati 2019A3PS0415H
 Achyut Bajpai 2019A8PS0499H
@@ -35,11 +36,11 @@ Shubham Priyank 2019AAPS0467H
 Shubham Singla 2019A3PS0392H
 Sukrit Kumar 2019AAPS0231H
 */
+
 int log__ = 0; // flag to log values for debugging 
 int tc_glob = 0; // global thread count;
 int ec = 0;
 int found = 0;
-//static pthread_mutex_t printf_mutex;
 
 int thread_spawner(int board[36][36], int s,int useThreads,int call_id);
  
@@ -172,7 +173,12 @@ int emptyCount(int board[36][36], int s){
 	}
 	return c;
 }
- 
+
+
+/*
+Recursive function to either fill value
+or go back to boards previous state
+*/ 
 int solve(int board[36][36], int s) {
 	int r = -1, c = -1;
 	int k = findEmpty(board,s,&r,&c);
@@ -199,7 +205,8 @@ int solve(int board[36][36], int s) {
     }
     return 1;
 }
- 
+
+// struct to use for passing board state to threads 
 typedef struct {
 	int t_id;
 	int row,col;
@@ -209,6 +216,8 @@ typedef struct {
 	int board[36][36];
 } game;
 
+// gloabl variables to state board state for final 
+// printing
 int board_glob[128][36][36];
 int board_solve_id = -1;
 
