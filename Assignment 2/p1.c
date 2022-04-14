@@ -143,7 +143,7 @@ int main(int argc, char const *argv[]){
 		double cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
 		// fprintf(data_file, "%d Threads take %f s\n",tc,cpu_time_used);
 		fprintf(data_file, "%f\n",cpu_time_used);
-		sleep(5);
+		//sleep(5);
 	}
 	fclose(data_file);
 	return 0;
