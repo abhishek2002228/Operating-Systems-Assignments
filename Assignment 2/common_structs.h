@@ -12,6 +12,22 @@ typedef struct {
 	int finished;
 } process;
 
+typedef struct {
+	sem_t mutex[2];
+	int finished[2];
+	
+} proc_data;
+
+typedef struct thread_info {
+	const char *fileName;
+	int chunkSize;
+	int skip_point;
+	int thread_id;
+	int ep;
+	int sp;
+	sem_t mutex;
+} thread_info;
+
 // queue data structure common to both scheduler
 void enqueue(process p); // add to the back of the queue
 process dequeue(); // add to the front of the queue

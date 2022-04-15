@@ -11,6 +11,9 @@
 #include <time.h>
 #include<errno.h>
 #include <semaphore.h>
+
+#include "common_structs.h"
+
 #define MAX_THREAD 16
 #define THREAD_COUNT 8
 int count = 0;
@@ -21,27 +24,10 @@ pthread_mutex_t mutex;
 
 //gcc -pthread p1.c -o p1.out -lm
 
-typedef struct {
-	sem_t mutex[2];
-	int sched[2];
-	int finished[2];
-} proc_data;
-
-typedef struct thread_info {
-	char *fileName;
-	int chunkSize;
-	int thread_id;
-	int ep;
-	int sp;
-	sem_t mutex;
-} thread_info;
-
-
-
 void *thread_worker(void * args ){
 	thread_info *t_if =  (thread_info *)args;
 	int temp;
-	int *p = shmat(shmid,0,0);
+	int *p = shmat(shmid,NULL,0);
 	if(p == (int*)-1){
       perror("Error attaching to shared memory\n");
       exit(1);
@@ -51,6 +37,8 @@ void *thread_worker(void * args ){
 		sem_wait(&t_if->mutex);
 		//printf("%d ",p[i]);
 		thread_sum += p[i];
+		printf("P2 working \n");
+
 
 		read++;
 	}
@@ -65,26 +53,22 @@ void *thread_worker(void * args ){
 int main(int argc, char const *argv[]){
 	printf("Starting P2\n");
 	//assert(argc == 3);
-	for(int i  =  0 ; i < argc; i++){
-		printf("%s \n",argv[i]);
-	}
-	// assert(argc == 3);
-	char *fileName = argv[1];
+	assert(argc == 3);
+	const char *fileName = argv[1];
 
 	proc_data *shared_memory;
-	shared_memory = shmat(shmget(ftok("main_sched.c", 0x45), sizeof(proc_data), 0666 | IPC_CREAT), 0, 0); // creating shared memory
-
+	shared_memory = shmat(shmget(ftok("p1.c",51), sizeof(proc_data), 0666), NULL, 0); // creating shared memory
 	count = atoi(argv[2]);
 	FILE *data_file = fopen("data_p2.txt","wc");
 	clock_t start, end;
-	if( (shmid = shmget(ftok("p1.c",51),count*sizeof(int),0666))== -1){
-      perror("Error in shmget\n");
-      exit(1);
-    }
-    //sleep(3);
-	printf("File name is %s and no of ints are %d \n",fileName,count);
+	if( (shmid = shmget(ftok("p2.c",51),count*sizeof(int),0666))== -1){
+  		perror("Error in shmget P2\n");
+  		exit(1);
+	}
+	printf("P2 BR3 \n");
+	printf("P2 File name is %s and no of ints are %d \n",fileName,count);
 	int tc = THREAD_COUNT;
-	printf("No of threads is %d \n",tc);
+	printf("P2 No of threads is %d \n",tc);
 	int chunkSize = (count%tc == 0) ?count/tc : count/tc + 1;
 	pthread_t thread[tc];
 	sum = 0;
@@ -99,6 +83,7 @@ int main(int argc, char const *argv[]){
 		ti->ep = sp + chunkSize;
 		sp += chunkSize;
 		ti->mutex = shared_memory->mutex[1];
+		printf("P2 Making threads\n");
 		pthread_create(&thread[j],NULL,thread_worker,ti);
 	}
 
