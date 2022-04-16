@@ -34,10 +34,10 @@ void *thread_worker(void * args ){
     }
     long long thread_sum = 0;
 	for(int i = t_if->sp; i < t_if->ep && i < count;i++){
-		sem_wait(&t_if->mutex);
+		// sem_wait(&t_if->mutex);
 		//printf("%d ",p[i]);
+		//printf("P2 working \n");
 		thread_sum += p[i];
-		printf("P2 working \n");
 
 
 		read++;
@@ -45,6 +45,7 @@ void *thread_worker(void * args ){
 	//sem_wait(&t_if->mutex);
 	pthread_mutex_lock(&mutex);
 	sum += thread_sum;
+	printf("P2 sum is %lld \n",sum);
 	pthread_mutex_unlock(&mutex);
 
 	//printf("\n");
@@ -65,7 +66,6 @@ int main(int argc, char const *argv[]){
   		perror("Error in shmget P2\n");
   		exit(1);
 	}
-	printf("P2 BR3 \n");
 	printf("P2 File name is %s and no of ints are %d \n",fileName,count);
 	int tc = THREAD_COUNT;
 	printf("P2 No of threads is %d \n",tc);
@@ -74,6 +74,7 @@ int main(int argc, char const *argv[]){
 	sum = 0;
 	start = clock();
 	int sp = 0;
+	printf("P2 BR4 \n");
 	for(int j = 0; j < tc; j++){
 		thread_info *ti = malloc(sizeof(thread_info));
 		ti->chunkSize = chunkSize;
@@ -83,13 +84,14 @@ int main(int argc, char const *argv[]){
 		ti->ep = sp + chunkSize;
 		sp += chunkSize;
 		ti->mutex = shared_memory->mutex[1];
-		printf("P2 Making threads\n");
+		// printf("P2 Making threads\n");
 		pthread_create(&thread[j],NULL,thread_worker,ti);
 	}
 
 	for(int j = 0; j < tc; j++){
 		pthread_join(thread[j],NULL);
 	}
+	printf("P2 Done \n");
 	printf("Sum  %lld \n",sum);
 	end = clock();
 	double cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;

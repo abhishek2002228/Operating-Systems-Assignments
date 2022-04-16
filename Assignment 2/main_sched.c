@@ -96,12 +96,17 @@ int main(int argc, char *argv[])
 
 
 	pid_t p1_pid, p2_pid;
+	pid_t pid_kill;
 	printf("Done setting up shared memory \n");
 	if(p1_pid = fork()){
 		if(p2_pid = fork()){
 			//main parent
 			printf("In parent \n");
+			pid_kill = p1_pid;
+			kill(p1_pid,SIGSTOP);
+			kill(p2_pid,SIGSTOP);
 			printf("%d %d \n", p1_pid,p2_pid);
+			printf("Going to kill %d \n",pid_kill);			
 			while(1){
 				//check if p1 and p2 finished
 				if(shared_memory->finished[0] && shared_memory->finished[1])
@@ -109,30 +114,41 @@ int main(int argc, char *argv[])
 				//RR
 				for(int i=0; i<2; i++){
 					if(!shared_memory->finished[i]){
+						printf("Scheduling %d currently \n",pid_kill);
+						kill(pid_kill,SIGCONT);
 						// printf("Posting for %d \n",i);
-						for(int j = 0; j < THREAD_COUNT; j++){
-							sem_post(&shared_memory->mutex[i]);
-						}
+						// for(int j = 0; j < THREAD_COUNT; j++){
+						// 	sem_post(&shared_memory->mutex[i]);
+						// }
 						usleep(TQ);
+						kill(pid_kill,SIGSTOP);
+						if(pid_kill == p1_pid){
+							pid_kill = p2_pid;
+						}else{
+							pid_kill = p1_pid;
+						}
+						// for(int j = 0; j < THREAD_COUNT; j++){
+							// sem_wait(&shared_memory->mutex[i]);
+						// }
 						//printf("Sleeping \n");
 					}
 				}	
 			}
 			
-			wait(&s1);
-			wait(&s2);
-			printf("%d %d \n",s1,s2);
+			// wait(&s1);
+			// wait(&s2);
+			// printf("%d %d \n",s1,s2);
 		}else{
 			//this is P2
 
-			if (  execlp("./p2_sched.out", "./p2_sched.out",argv[1], argv[2], NULL) == -1) {
+			if (  execlp("./p2_sched", "./p2_sched",argv[1], argv[2], NULL) == -1) {
 				printf("Error in 2 \n");	
 			}
 		}
 	}
 	else {
 		//this is P1
-		if (  execlp("./p1_sched.out", "./p1_sched.out",argv[1], argv[2], NULL) == -1) {
+		if (  execlp("./p1_sched", "./p1_sched",argv[1], argv[2], NULL) == -1) {
 			printf("Error in 2  \n");	
 		}
 	}

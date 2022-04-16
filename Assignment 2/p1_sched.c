@@ -52,6 +52,7 @@ void *thread_worker(void * args ){
 	int *p;
 	if(def_print){
 		printf("Reading on %d \n",t_if->thread_id);
+		printf("No read so far %d \n",read);
 	}
 	if(file == NULL){
 		printf("Error opening file \n");
@@ -72,13 +73,13 @@ void *thread_worker(void * args ){
     } 
     //printf("start point %d and end point is %d \n",t_if->sp,t_if->ep);
 	for(i = t_if->sp; i < t_if->ep  && i < count;i++){	
-        sem_wait(&t_if->mutex);
+        // sem_wait(&t_if->mutex);
 		fscanf(file,"%d",&temp);
 		if(def_print){
-			printf("%d ",temp);
+			printf("%d \n",temp);
 		}
 		p[i] = temp;
-		printf("P1 working \n");
+		// printf("P1 working \n");
 		//sum += temp;
 		if(temp < 0){
 			printf("Error occ\n");
@@ -86,7 +87,7 @@ void *thread_worker(void * args ){
 
 		read++;
 	}
-	//printf("end point %d \n",i);
+	printf("end point %d \n",i);
 	fclose(file);
 	if(def_print){
 		printf("\n");
@@ -182,7 +183,7 @@ int main(int argc, char const *argv[]){
         // printf("P1 okay just far \n");
 		ti->mutex = shared_memory->mutex[0];
 		// printf("Make one \n");
-        printf("start point is %d and ends at %d \n",ti->sp,ti->ep);
+        // printf("start point is %d and ends at %d \n",ti->sp,ti->ep);
         pthread_create(&thread[j],NULL,thread_worker,ti);
     }
 

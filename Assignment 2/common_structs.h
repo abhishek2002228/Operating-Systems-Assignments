@@ -26,7 +26,12 @@ typedef struct thread_info {
 	int ep;
 	int sp;
 	sem_t mutex;
-} thread_info;
+} thread_info;\
+
+typedef struct  {
+	long mtype;
+	int val;
+} message_queue;
 
 // queue data structure common to both scheduler
 void enqueue(process p); // add to the back of the queue
