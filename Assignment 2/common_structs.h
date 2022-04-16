@@ -18,6 +18,11 @@ typedef struct {
 	
 } proc_data;
 
+typedef struct{
+	double ta_time[2];
+	double wt_time[2];
+} time_logging;
+
 typedef struct thread_info {
 	const char *fileName;
 	int chunkSize;
@@ -26,6 +31,7 @@ typedef struct thread_info {
 	int ep;
 	int sp;
 	sem_t mutex;
+	int thread_num;
 } thread_info;\
 
 typedef struct  {

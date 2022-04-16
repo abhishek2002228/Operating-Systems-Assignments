@@ -5,7 +5,6 @@
 #include<string.h>
 #include<stdlib.h>
 #include <time.h>
-#include <assert.h>
 
 #include <sys/ipc.h>
 #include <sys/types.h>
@@ -64,7 +63,7 @@ int main(int argc, char *argv[])
 	key_data = ftok("p1_sched.c",51);
 	printf("%d \n",key_data);
 	
-	int shmid;
+	//int shmid;
 	int shm_id_main = shmget(ftok("p1.c",51), sizeof(proc_data), 0666 | IPC_CREAT);
 	if(shm_id_main == -1){
 		perror("Error in shmget 1");
@@ -80,11 +79,28 @@ int main(int argc, char *argv[])
 		perror("Error in attaching main \n");
 		exit(1);
 	}
+	int shmid_flags;
+	if((shmid_flags = shmget(ftok("p2.c", 52), (THREAD_COUNT)*sizeof(int), 0666|IPC_CREAT)) == -1){
+		perror("Error in shmget main_flags \n");
+		exit(1);
+	}
+	int *shm_flags = (int *)shmat(shmid_flags, NULL, 0);
+	for(int k = 0; k < THREAD_COUNT; k++){
+		shm_flags[k] = 0; //initialize flags to 0
+	}
 	int shm_id_seek = shmget(ftok("p2.c",44),(count+1)*sizeof(int),0666|IPC_CREAT);
 	if(shm_id_seek == -1){
-		perror("Error in shmget seek");
+		perror("Error in shmget seek\n");
 		exit(1);	
 	}
+
+	int shm_time_logging = shmget(ftok("main_sched.c", 51), sizeof(time_logging), 0666|IPC_CREAT);
+	if(shm_time_logging == -1){
+		perror("Error in shm time logging\n");
+		exit(1);
+	}
+
+	time_logging *time_log = shmat(shm_time_logging, NULL, 0);
 	mp = (int *) shmat(shm_id_seek,NULL,0);
 	//shared_memory->mp = (int * ) malloc(sizeof(int) * (count + 1));
 	generateSeekMap(fileName,mp);
@@ -94,6 +110,8 @@ int main(int argc, char *argv[])
 	sem_init(&shared_memory->mutex[0],0,0);
 	sem_init(&shared_memory->mutex[1],0,0);
 
+	clock_t wt_st[2];
+	clock_t wt_en[2];
 
 	pid_t p1_pid, p2_pid;
 	pid_t pid_kill;
@@ -104,7 +122,9 @@ int main(int argc, char *argv[])
 			printf("In parent \n");
 			pid_kill = p1_pid;
 			kill(p1_pid,SIGSTOP);
+			wt_st[0] = clock();
 			kill(p2_pid,SIGSTOP);
+			wt_st[1] = clock();
 			printf("%d %d \n", p1_pid,p2_pid);
 			printf("Going to kill %d \n",pid_kill);			
 			while(1){
@@ -116,6 +136,8 @@ int main(int argc, char *argv[])
 					if(!shared_memory->finished[i]){
 						printf("Scheduling %d currently \n",pid_kill);
 						kill(pid_kill,SIGCONT);
+						wt_en[i] = clock();
+						time_log->wt_time[i] += ((double)(wt_en[i]-wt_st[i]))/CLOCKS_PER_SEC;
 						// printf("Posting for %d \n",i);
 						// for(int j = 0; j < THREAD_COUNT; j++){
 						// 	sem_post(&shared_memory->mutex[i]);
@@ -123,8 +145,10 @@ int main(int argc, char *argv[])
 						usleep(TQ);
 						kill(pid_kill,SIGSTOP);
 						if(pid_kill == p1_pid){
+							wt_st[0] = clock();
 							pid_kill = p2_pid;
 						}else{
+							wt_st[1] = clock();
 							pid_kill = p1_pid;
 						}
 						// for(int j = 0; j < THREAD_COUNT; j++){
@@ -134,21 +158,42 @@ int main(int argc, char *argv[])
 					}
 				}	
 			}
-			
+			printf("P1 and P2 done\n");
+			if(shmctl(shm_id_main, IPC_RMID, NULL) == -1){
+				exit(1);
+			}
+			if(shmctl(shm_id_seek, IPC_RMID, NULL) == -1){
+				exit(1);
+			}
+			if(shmctl(shmid_flags, IPC_RMID, NULL) == -1){
+				exit(1);
+			}
+
+			printf("Turnaround time for P1: %lf\n", time_log->ta_time[0]);
+			printf("Turnaround time for P2: %lf\n", time_log->ta_time[1]);
+			printf("Waiting time for P1: %lf\n", time_log->wt_time[0]);
+			printf("Waiting time for P2: %lf\n", time_log->wt_time[1]);
+			printf("Average Turnaround Time: %lf\n", (time_log->ta_time[0] + time_log->ta_time[1])/2 );
+			printf("Average Waiting Time: %lf\n", (time_log->wt_time[0] + time_log->wt_time[1])/2 );
+
+			if(shmctl(shm_time_logging, IPC_RMID, NULL) == -1){
+				exit(1);
+			}
+
 			// wait(&s1);
 			// wait(&s2);
 			// printf("%d %d \n",s1,s2);
 		}else{
 			//this is P2
 
-			if (  execlp("./p2_sched", "./p2_sched",argv[1], argv[2], NULL) == -1) {
+			if (  execlp("./p2_sched.out", "./p2_sched.out",argv[1], argv[2], NULL) == -1) {
 				printf("Error in 2 \n");	
 			}
 		}
 	}
 	else {
 		//this is P1
-		if (  execlp("./p1_sched", "./p1_sched",argv[1], argv[2], NULL) == -1) {
+		if (  execlp("./p1_sched.out", "./p1_sched.out",argv[1], argv[2], NULL) == -1) {
 			printf("Error in 2  \n");	
 		}
 	}

@@ -21,7 +21,7 @@ int read = 0;
 unsigned long long sum =0;
 int def_print = 0;
 int shmid;
-
+int shmid_flags;
 //gcc -pthread p1.c -o p1.out -lm
 
 void generateSeekMap(char *fileName,int *mp){
@@ -68,6 +68,12 @@ void *thread_worker(void * args ){
       perror("Error attaching to shared memory\n");
       exit(1);
     }
+	int *q;
+	q = shmat(shmid_flags, NULL, 0);
+	if(q == (int *)-1){
+		perror("Error in attaching shm flags\n");
+		exit(1);
+	}
     if(t_if->sp > count) {
     	return NULL;
     } 
@@ -89,6 +95,7 @@ void *thread_worker(void * args ){
 	}
 	printf("end point %d \n",i);
 	fclose(file);
+	q[t_if->thread_num] = 1;
 	if(def_print){
 		printf("\n");
 	}
@@ -101,6 +108,13 @@ void printSeek(int *mp,int count){
 }
 
 int main(int argc, char const *argv[]){
+	int shm_time_logging = shmget(ftok("main_sched.c", 51), sizeof(time_logging), 0666);
+	if(shm_time_logging == -1){
+		perror("Error in shm time logging P1\n");
+		exit(1);
+	}
+	time_logging *time_log = shmat(shm_time_logging, NULL, 0);
+	
 	printf("Starting p1 man\n");
 	assert(argc == 3);
 	//for(int i = 0; i < argc;i++){
@@ -134,13 +148,17 @@ int main(int argc, char const *argv[]){
 	if(data_file == NULL){
 		printf("Error opening file \n");
 	}
-	clock_t start, end;
 	if( (shmid = shmget(ftok("p2.c",51),(count+1)*sizeof(int),0666))== -1){
       perror("Error in shmget P1 \n");
       exit(1);
     }
 	printf("P1 attached transfer data memory \n");
 
+	if((shmid_flags = shmget(ftok("p2.c", 52), (THREAD_COUNT)*sizeof(int), 0666)) == -1){
+		perror("Error in shmget P1_flags \n");
+		exit(1);
+	}
+	printf("P1 attached flags memory \n");
 	int shm_id_seek = shmget(ftok("p2.c",44),(count+1)*sizeof(int),0666|IPC_CREAT);
 	if(shm_id_seek == -1){
 		perror("Error in shmget seek");
@@ -161,9 +179,10 @@ int main(int argc, char const *argv[]){
     pthread_t thread[tc];
     printf("P1 No of threads %d \n",tc);
     read = 0;
-    start = clock();
     int sp = 0;
     printf("P1 Ready to make threads \n");
+	clock_t st_time, en_time;
+	st_time = clock();
     for(int j = 0; j < tc; j++){
         thread_info *ti = malloc(sizeof(thread_info));
         // printf("P1 okay so far \n");
@@ -182,6 +201,7 @@ int main(int argc, char const *argv[]){
         sp += chunkSize;
         // printf("P1 okay just far \n");
 		ti->mutex = shared_memory->mutex[0];
+		ti->thread_num = j;
 		// printf("Make one \n");
         // printf("start point is %d and ends at %d \n",ti->sp,ti->ep);
         pthread_create(&thread[j],NULL,thread_worker,ti);
@@ -190,10 +210,10 @@ int main(int argc, char const *argv[]){
     for(int j = 0; j < tc; j++){
         pthread_join(thread[j],NULL);
     }
-    end = clock();
-    double cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
+	en_time = clock();
+	double ta_time = ((double)(en_time-st_time))/CLOCKS_PER_SEC;
+	time_log->ta_time[0] = ta_time;
     // fprintf(data_file, "%d Threads take %f s\n",tc,cpu_time_used);
-    fprintf(data_file, "%f\n",cpu_time_used);
     //(5);
 	fclose(data_file);
 	shared_memory->finished[0] = 1;
