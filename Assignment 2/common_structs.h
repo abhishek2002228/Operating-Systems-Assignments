@@ -22,6 +22,7 @@ typedef struct{
 	double ta_time[2];
 	double wt_time[2];
 	double run_time[2];
+	double switch_time[2];
 } time_logging;
 
 typedef struct thread_info {
@@ -33,7 +34,7 @@ typedef struct thread_info {
 	int sp;
 	sem_t mutex;
 	int thread_num;
-} thread_info;\
+} thread_info;
 
 typedef struct  {
 	long mtype;

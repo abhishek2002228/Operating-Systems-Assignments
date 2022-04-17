@@ -73,14 +73,14 @@ int main(int argc, char const *argv[]){
 	const char *fileName = argv[1];
 
 	proc_data *shared_memory;
-	shared_memory = shmat(shmget(ftok("p1.c",51), sizeof(proc_data), 0666), NULL, 0); // creating shared memory
+	shared_memory = shmat(shmget(ftok("p1_sched.c",51), sizeof(proc_data), 0666), NULL, 0); // creating shared memory
 	count = atoi(argv[2]);
 	FILE *data_file = fopen("data_p2.txt","wc");
-	if( (shmid = shmget(ftok("p2.c",51),count*sizeof(int),0666))== -1){
+	if( (shmid = shmget(ftok("p2_sched.c",51),count*sizeof(int),0666))== -1){
   		perror("Error in shmget P2\n");
   		exit(1);
 	}
-	if((shmid_flags = shmget(ftok("p2.c", 52), (THREAD_COUNT)*sizeof(int), 0666)) == -1){
+	if((shmid_flags = shmget(ftok("p2_sched.c", 52), (THREAD_COUNT)*sizeof(int), 0666)) == -1){
 		perror("Error in shmget P2_flags \n");
 		exit(1);
 	}

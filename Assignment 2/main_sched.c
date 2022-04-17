@@ -64,12 +64,12 @@ int main(int argc, char *argv[])
 	printf("%d \n",key_data);
 	
 	//int shmid;
-	int shm_id_main = shmget(ftok("p1.c",51), sizeof(proc_data), 0666 | IPC_CREAT);
+	int shm_id_main = shmget(ftok("p1_sched.c",51), sizeof(proc_data), 0666 | IPC_CREAT);
 	if(shm_id_main == -1){
 		perror("Error in shmget 1");
 		exit(1);
 	}
-	int shm_id_data = shmget(ftok("p2.c",51),(count+1)*sizeof(int),0666|IPC_CREAT);
+	int shm_id_data = shmget(ftok("p2_sched.c",51),(count+1)*sizeof(int),0666|IPC_CREAT);
 	if(shm_id_data == -1){
 		perror("Error in shmget 2");
 		exit(1);
@@ -80,7 +80,7 @@ int main(int argc, char *argv[])
 		exit(1);
 	}
 	int shmid_flags;
-	if((shmid_flags = shmget(ftok("p2.c", 52), (THREAD_COUNT)*sizeof(int), 0666|IPC_CREAT)) == -1){
+	if((shmid_flags = shmget(ftok("p2_sched.c", 52), (THREAD_COUNT)*sizeof(int), 0666|IPC_CREAT)) == -1){
 		perror("Error in shmget main_flags \n");
 		exit(1);
 	}
@@ -88,7 +88,7 @@ int main(int argc, char *argv[])
 	for(int k = 0; k < THREAD_COUNT; k++){
 		shm_flags[k] = 0; //initialize flags to 0
 	}
-	int shm_id_seek = shmget(ftok("p2.c",44),(count+1)*sizeof(int),0666|IPC_CREAT);
+	int shm_id_seek = shmget(ftok("p2_sched.c",44),(count+1)*sizeof(int),0666|IPC_CREAT);
 	if(shm_id_seek == -1){
 		perror("Error in shmget seek\n");
 		exit(1);	
@@ -112,6 +112,8 @@ int main(int argc, char *argv[])
 
 	clock_t wt_st[2];
 	clock_t wt_en[2];
+	clock_t switch_st[2];
+	clock_t switch_en[2];
 
 	pid_t p1_pid, p2_pid;
 	pid_t pid_kill;
@@ -138,10 +140,6 @@ int main(int argc, char *argv[])
 						kill(pid_kill,SIGCONT);
 						wt_en[i] = clock();
 						time_log->wt_time[i] += ((double)(wt_en[i]-wt_st[i]))/CLOCKS_PER_SEC;
-						// printf("Posting for %d \n",i);
-						// for(int j = 0; j < THREAD_COUNT; j++){
-						// 	sem_post(&shared_memory->mutex[i]);
-						// }
 						usleep(TQ);
 						kill(pid_kill,SIGSTOP);
 						if(pid_kill == p1_pid){
@@ -151,10 +149,6 @@ int main(int argc, char *argv[])
 							wt_st[1] = clock();
 							pid_kill = p1_pid;
 						}
-						// for(int j = 0; j < THREAD_COUNT; j++){
-							// sem_wait(&shared_memory->mutex[i]);
-						// }
-						//printf("Sleeping \n");
 					}
 				}	
 			}

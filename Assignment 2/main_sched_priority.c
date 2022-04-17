@@ -64,12 +64,12 @@ int main(int argc, char *argv[])
 	printf("%d \n",key_data);
 	
 	//int shmid;
-	int shm_id_main = shmget(ftok("p1.c",51), sizeof(proc_data), 0666 | IPC_CREAT);
+	int shm_id_main = shmget(ftok("p1_sched.c",51), sizeof(proc_data), 0666 | IPC_CREAT);
 	if(shm_id_main == -1){
 		perror("Error in shmget 1");
 		exit(1);
 	}
-	int shm_id_data = shmget(ftok("p2.c",51),(count+1)*sizeof(int),0666|IPC_CREAT);
+	int shm_id_data = shmget(ftok("p2_sched.c",51),(count+1)*sizeof(int),0666|IPC_CREAT);
 	if(shm_id_data == -1){
 		perror("Error in shmget 2");
 		exit(1);
@@ -80,7 +80,7 @@ int main(int argc, char *argv[])
 		exit(1);
 	}
 	int shmid_flags;
-	if((shmid_flags = shmget(ftok("p2.c", 52), (THREAD_COUNT)*sizeof(int), 0666|IPC_CREAT)) == -1){
+	if((shmid_flags = shmget(ftok("p2_sched.c", 52), (THREAD_COUNT)*sizeof(int), 0666|IPC_CREAT)) == -1){
 		perror("Error in shmget main_flags \n");
 		exit(1);
 	}
@@ -88,7 +88,7 @@ int main(int argc, char *argv[])
 	for(int k = 0; k < THREAD_COUNT; k++){
 		shm_flags[k] = 0; //initialize flags to 0
 	}
-	int shm_id_seek = shmget(ftok("p2.c",44),(count+1)*sizeof(int),0666|IPC_CREAT);
+	int shm_id_seek = shmget(ftok("p2_sched.c",44),(count+1)*sizeof(int),0666|IPC_CREAT);
 	if(shm_id_seek == -1){
 		perror("Error in shmget seek\n");
 		exit(1);	
@@ -109,12 +109,15 @@ int main(int argc, char *argv[])
 	shared_memory->finished[1] = 0;
 	sem_init(&shared_memory->mutex[0],0,0);
 	sem_init(&shared_memory->mutex[1],0,0);
-
+	time_log->switch_time[0] = 0;
+	time_log->switch_time[1] = 0;
 	clock_t wt_st[2];
 	clock_t wt_en[2];
 	clock_t run_st[2];
 	clock_t run_en[2];
-
+	clock_t switch_st[2];
+	clock_t switch_en[2];
+	int flag = 0;
 	pid_t p1_pid, p2_pid;
 	pid_t pid_kill;
 	printf("Done setting up shared memory \n");
@@ -128,7 +131,6 @@ int main(int argc, char *argv[])
 			kill(p2_pid,SIGSTOP);
 			wt_st[1] = clock();
 			printf("%d %d \n", p1_pid,p2_pid);
-			printf("Going to kill %d \n",pid_kill);			
 			while(1){
 				//check if p1 and p2 finished
 				if(shared_memory->finished[0] && shared_memory->finished[1])
@@ -136,22 +138,28 @@ int main(int argc, char *argv[])
 				//Preemptive Priority Scheduling
 
 				if(time_log->run_time[1] >= time_log->run_time[0]){
+					// run the process with the lower wait time.
+					// in case of tie we break with FCFS
+					// always P1 is run first
 					if(!shared_memory->finished[0]){
+						flag = 0;
 						pid_kill = p1_pid;
 					}
 					else if(!shared_memory->finished[1]){
 						pid_kill = p2_pid;
+						flag = 1;
 					}
 					else{
 						break;
 					}
-				}
-				else{
+				}else{
 					if(!shared_memory->finished[1]){
 						pid_kill = p2_pid;
+						flag = 1;
 					}
 					else if(!shared_memory->finished[0]){
 						pid_kill = p1_pid;
+						flag = 0;
 					}
 					else{
 						break;
@@ -159,7 +167,10 @@ int main(int argc, char *argv[])
 				}
 				printf("Scheduling process %d\n", pid_kill);
 				printf("Run time for P1 and P2: %lf %lf \n", time_log->run_time[0], time_log->run_time[1]);
+				switch_st[flag] = clock();
 				kill(pid_kill, SIGCONT);
+				switch_en[flag] = clock();
+				time_log->switch_time[flag] += ((double)((switch_st[flag]-switch_en[flag])/CLOCKS_PER_SEC)); 
 				if(pid_kill == p1_pid){
 					run_st[0] = clock();
 					wt_en[0] = clock();
@@ -171,8 +182,10 @@ int main(int argc, char *argv[])
 					time_log->wt_time[1] += ((double)(wt_en[1]-wt_st[1]))/CLOCKS_PER_SEC;
 				}
 				usleep(TQ);
-
+				switch_st[flag] = clock();
 				kill(pid_kill, SIGSTOP);
+				switch_en[flag] = clock();
+				time_log->switch_time[flag] += ((double)((switch_st[flag]-switch_en[flag])/CLOCKS_PER_SEC)); 
 				if(pid_kill == p1_pid){
 					wt_st[0] = clock();
 					run_en[0] = clock();
@@ -230,14 +243,12 @@ int main(int argc, char *argv[])
 			printf("Run time for P2: %lf\n", time_log->run_time[1]);
 			printf("Average Turnaround Time: %lf\n", (time_log->ta_time[0] + time_log->ta_time[1])/2 );
 			printf("Average Waiting Time: %lf\n", (time_log->wt_time[0] + time_log->wt_time[1])/2 );
-
+			printf("Switching overhead for P1: %lf\n", time_log->switch_time[0]);
+			printf("Switching overhead for P2: %lf\n", time_log->switch_time[1]);
 			if(shmctl(shm_time_logging, IPC_RMID, NULL) == -1){
 				exit(1);
 			}
 
-			// wait(&s1);
-			// wait(&s2);
-			// printf("%d %d \n",s1,s2);
 		}else{
 			//this is P2
 

@@ -115,7 +115,7 @@ int main(int argc, char const *argv[]){
 	}
 	time_logging *time_log = shmat(shm_time_logging, NULL, 0);
 	
-	printf("Starting p1 man\n");
+	printf("Starting p1\n");
 	assert(argc == 3);
 	//for(int i = 0; i < argc;i++){
 	//	printf("%s \n", argv[i]);
@@ -127,7 +127,7 @@ int main(int argc, char const *argv[]){
 	//sh = shmat(shm_id_2, 0, 0); // creating shared memory
 	
 	key_t key_main;
-	key_main = ftok("p1.c",51);
+	key_main = ftok("p1_sched.c",51);
 	int shm_id_main = shmget(key_main, sizeof(proc_data), 0666);
 	if(shm_id_main == -1){
 		perror("Error in attach p1 \n");
@@ -148,18 +148,18 @@ int main(int argc, char const *argv[]){
 	if(data_file == NULL){
 		printf("Error opening file \n");
 	}
-	if( (shmid = shmget(ftok("p2.c",51),(count+1)*sizeof(int),0666))== -1){
+	if( (shmid = shmget(ftok("p2_sched.c",51),(count+1)*sizeof(int),0666))== -1){
       perror("Error in shmget P1 \n");
       exit(1);
     }
 	printf("P1 attached transfer data memory \n");
 
-	if((shmid_flags = shmget(ftok("p2.c", 52), (THREAD_COUNT)*sizeof(int), 0666)) == -1){
+	if((shmid_flags = shmget(ftok("p2_sched.c", 52), (THREAD_COUNT)*sizeof(int), 0666)) == -1){
 		perror("Error in shmget P1_flags \n");
 		exit(1);
 	}
 	printf("P1 attached flags memory \n");
-	int shm_id_seek = shmget(ftok("p2.c",44),(count+1)*sizeof(int),0666|IPC_CREAT);
+	int shm_id_seek = shmget(ftok("p2_sched.c",44),(count+1)*sizeof(int),0666|IPC_CREAT);
 	if(shm_id_seek == -1){
 		perror("Error in shmget seek");
 		exit(1);	
