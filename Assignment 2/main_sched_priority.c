@@ -47,6 +47,23 @@ void printSeek(int *mp,int count){
 	}
 }
 
+enum { NS_PER_SECOND = 1000000000 };
+
+void sub_timespec(struct timespec t1, struct timespec t2, struct timespec *td){
+    td->tv_nsec = t2.tv_nsec - t1.tv_nsec;
+    td->tv_sec  = t2.tv_sec - t1.tv_sec;
+    if (td->tv_sec > 0 && td->tv_nsec < 0)
+    {
+        td->tv_nsec += NS_PER_SECOND;
+        td->tv_sec--;
+    }
+    else if (td->tv_sec < 0 && td->tv_nsec > 0)
+    {
+        td->tv_nsec -= NS_PER_SECOND;
+        td->tv_sec++;
+    }
+}
+
 int main(int argc, char *argv[])
 {
 	sem_t mutex[2];
@@ -109,14 +126,17 @@ int main(int argc, char *argv[])
 	shared_memory->finished[1] = 0;
 	sem_init(&shared_memory->mutex[0],0,0);
 	sem_init(&shared_memory->mutex[1],0,0);
-	time_log->switch_time[0] = 0;
-	time_log->switch_time[1] = 0;
+
 	clock_t wt_st[2];
 	clock_t wt_en[2];
 	clock_t run_st[2];
 	clock_t run_en[2];
-	clock_t switch_st[2];
-	clock_t switch_en[2];
+	// clock_t switch_st[2];
+	// clock_t switch_en[2];
+
+	struct timespec switch_st[2],switch_en[2],delta;
+
+
 	int flag = 0;
 	pid_t p1_pid, p2_pid;
 	pid_t pid_kill;
@@ -167,10 +187,12 @@ int main(int argc, char *argv[])
 				}
 				printf("Scheduling process %d\n", pid_kill);
 				printf("Run time for P1 and P2: %lf %lf \n", time_log->run_time[0], time_log->run_time[1]);
-				switch_st[flag] = clock();
+				clock_gettime(CLOCK_REALTIME,&switch_st[flag]);
 				kill(pid_kill, SIGCONT);
-				switch_en[flag] = clock();
-				time_log->switch_time[flag] += ((double)((switch_st[flag]-switch_en[flag])/CLOCKS_PER_SEC)); 
+				clock_gettime(CLOCK_REALTIME,&switch_en[flag]);
+				sub_timespec(switch_st[flag],switch_en[flag],&delta);
+				time_log->switch_time[flag].tv_sec += (int)delta.tv_sec;
+				time_log->switch_time[flag].tv_nsec += delta.tv_nsec; 
 				if(pid_kill == p1_pid){
 					run_st[0] = clock();
 					wt_en[0] = clock();
@@ -182,10 +204,12 @@ int main(int argc, char *argv[])
 					time_log->wt_time[1] += ((double)(wt_en[1]-wt_st[1]))/CLOCKS_PER_SEC;
 				}
 				usleep(TQ);
-				switch_st[flag] = clock();
+				clock_gettime(CLOCK_REALTIME,&switch_st[flag]);
 				kill(pid_kill, SIGSTOP);
-				switch_en[flag] = clock();
-				time_log->switch_time[flag] += ((double)((switch_st[flag]-switch_en[flag])/CLOCKS_PER_SEC)); 
+				clock_gettime(CLOCK_REALTIME,&switch_en[flag]);
+				sub_timespec(switch_st[flag],switch_en[flag],&delta);
+				time_log->switch_time[flag].tv_sec += (int)delta.tv_sec;
+				time_log->switch_time[flag].tv_nsec += delta.tv_nsec; 
 				if(pid_kill == p1_pid){
 					wt_st[0] = clock();
 					run_en[0] = clock();
@@ -243,8 +267,8 @@ int main(int argc, char *argv[])
 			printf("Run time for P2: %lf\n", time_log->run_time[1]);
 			printf("Average Turnaround Time: %lf\n", (time_log->ta_time[0] + time_log->ta_time[1])/2 );
 			printf("Average Waiting Time: %lf\n", (time_log->wt_time[0] + time_log->wt_time[1])/2 );
-			printf("Switching overhead for P1: %lf\n", time_log->switch_time[0]);
-			printf("Switching overhead for P2: %lf\n", time_log->switch_time[1]);
+			printf("Switching overhead for P1: %d.%.9ld\n",(int)time_log->switch_time[0].tv_sec,time_log->switch_time[0].tv_nsec);
+			printf("Switching overhead for P2: %d.%.9ld\n",(int)time_log->switch_time[0].tv_sec,time_log->switch_time[1].tv_nsec);
 			if(shmctl(shm_time_logging, IPC_RMID, NULL) == -1){
 				exit(1);
 			}
