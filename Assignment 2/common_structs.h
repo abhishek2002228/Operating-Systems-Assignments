@@ -19,9 +19,9 @@ typedef struct {
 } proc_data;
 
 typedef struct{
-	double ta_time[2];
-	double wt_time[2];
-	double run_time[2];
+	struct timespec ta_time[2];
+	struct timespec wt_time[2];
+	struct timespec run_time[2];
 	struct timespec switch_time[2];
 } time_logging;
 

@@ -54,10 +54,29 @@ void *thread_worker(void * args ){
 	//sem_wait(&t_if->mutex);
 	pthread_mutex_lock(&mutex);
 	sum += thread_sum;
-	printf("P2 sum is %lld \n",sum);
+	// printf("P2 sum is %lld \n",sum);
 	pthread_mutex_unlock(&mutex);
 
 	//printf("\n");
+}
+
+enum { NS_PER_SECOND = 1000000000 };
+
+void sub_timespec(struct timespec t1, struct timespec t2, struct timespec *td){
+    td->tv_nsec = t2.tv_nsec - t1.tv_nsec;
+    td->tv_sec  = t2.tv_sec - t1.tv_sec;
+    if (td->tv_sec > 0 && td->tv_nsec < 0)
+    {
+    	printf("Trig sub P2\n");
+        td->tv_nsec += NS_PER_SECOND;
+        td->tv_sec--;
+    }
+    else if (td->tv_sec < 0 && td->tv_nsec > 0)
+    {
+    	printf("Trig sub P2_2\n");
+        td->tv_nsec -= NS_PER_SECOND;
+        td->tv_sec++;
+    }
 }
 
 int main(int argc, char const *argv[]){
@@ -93,8 +112,10 @@ int main(int argc, char const *argv[]){
 	sum = 0;
 	int sp = 0;
 	printf("P2 BR4 \n");
-	clock_t st_time, en_time;
-	st_time = clock();
+	// clock_t st_time, en_time;
+	// st_time = clock();
+	struct timespec st_time,en_time,delta;
+	clock_gettime(CLOCK_REALTIME,&st_time);
 	for(int j = 0; j < tc; j++){
 		thread_info *ti = malloc(sizeof(thread_info));
 		ti->chunkSize = chunkSize;
@@ -114,10 +135,15 @@ int main(int argc, char const *argv[]){
 	}
 	printf("P2 Done \n");
 	printf("Sum  %lld \n",sum);
-	en_time = clock();
-	double ta_time = ((double)(en_time-st_time))/CLOCKS_PER_SEC;
-	time_log->ta_time[1] = ta_time;
-	//fprintf(data_file, "%d Threads take %f s\n",tc,cpu_time_used);
+	// en_time = clock();
+	clock_gettime(CLOCK_REALTIME,&en_time);
+	sub_timespec(st_time,en_time,&delta);
+	time_log->ta_time[1].tv_sec += (int)delta.tv_sec;
+	time_log->ta_time[1].tv_nsec += delta.tv_nsec;
+	// double ta_time = ((double)(en_time-st_time))/CLOCKS_PER_SEC;
+	// time_log->ta_time[1] = ta_time;
+    fprintf(data_file, "%d.%.9lds\n",(int)time_log->wt_time[1].tv_sec,time_log->wt_time[1].tv_nsec);
+
 	//sleep(5);
 	fclose(data_file);
 	// clear out all the shared memory

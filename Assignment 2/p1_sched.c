@@ -93,7 +93,7 @@ void *thread_worker(void * args ){
 
 		read++;
 	}
-	printf("end point %d \n",i);
+	// printf("end point %d \n",i);
 	fclose(file);
 	q[t_if->thread_num] = 1;
 	if(def_print){
@@ -105,6 +105,25 @@ void printSeek(int *mp,int count){
 	for(int i = 0; i <= count; i++){
 		printf("%d => %d \n", i, mp[i]);
 	}
+}
+
+enum { NS_PER_SECOND = 1000000000 };
+
+void sub_timespec(struct timespec t1, struct timespec t2, struct timespec *td){
+    td->tv_nsec = t2.tv_nsec - t1.tv_nsec;
+    td->tv_sec  = t2.tv_sec - t1.tv_sec;
+    if (td->tv_sec > 0 && td->tv_nsec < 0)
+    {
+    	printf("Trig sub P1\n");
+        td->tv_nsec += NS_PER_SECOND;
+        td->tv_sec--;
+    }
+    else if (td->tv_sec < 0 && td->tv_nsec > 0)
+    {
+    	printf("Trig sub P1_2\n");
+        td->tv_nsec -= NS_PER_SECOND;
+        td->tv_sec++;
+    }
 }
 
 int main(int argc, char const *argv[]){
@@ -181,8 +200,10 @@ int main(int argc, char const *argv[]){
     read = 0;
     int sp = 0;
     printf("P1 Ready to make threads \n");
-	clock_t st_time, en_time;
-	st_time = clock();
+	// clock_t st_time, en_time;
+	struct timespec st_time,en_time,delta;
+	// st_time = clock();
+	clock_gettime(CLOCK_REALTIME,&st_time);
     for(int j = 0; j < tc; j++){
         thread_info *ti = malloc(sizeof(thread_info));
         // printf("P1 okay so far \n");
@@ -210,10 +231,14 @@ int main(int argc, char const *argv[]){
     for(int j = 0; j < tc; j++){
         pthread_join(thread[j],NULL);
     }
-	en_time = clock();
-	double ta_time = ((double)(en_time-st_time))/CLOCKS_PER_SEC;
-	time_log->ta_time[0] = ta_time;
-    // fprintf(data_file, "%d Threads take %f s\n",tc,cpu_time_used);
+	// en_time = clock();
+	clock_gettime(CLOCK_REALTIME,&en_time);
+	// double ta_time = ((double)(en_time-st_time))/CLOCKS_PER_SEC;
+	sub_timespec(st_time,en_time,&delta);
+	time_log->ta_time[0].tv_sec += (int)delta.tv_sec;
+	time_log->ta_time[0].tv_nsec += delta.tv_nsec;
+	// time_log->ta_time[0] = ta_time;
+    fprintf(data_file, "%d.%.9lds\n",(int)time_log->wt_time[0].tv_sec,time_log->wt_time[0].tv_nsec);
     //(5);
 	fclose(data_file);
 	shared_memory->finished[0] = 1;
