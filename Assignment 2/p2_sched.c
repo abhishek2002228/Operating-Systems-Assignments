@@ -38,6 +38,7 @@ void *thread_worker(void * args ){
 		perror("Error in attaching shm flags\n");
 		exit(1);
 	}
+	printf("thread number %d waiting for shared memory to be filled\n", t_if->thread_num);
 	while(q[t_if->thread_num] != 1){
 		;
 	}

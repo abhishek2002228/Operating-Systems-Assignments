@@ -21,6 +21,7 @@ typedef struct {
 typedef struct{
 	double ta_time[2];
 	double wt_time[2];
+	double run_time[2];
 } time_logging;
 
 typedef struct thread_info {
