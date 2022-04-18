@@ -1,8 +1,6 @@
 #include<stdio.h>
 #include<assert.h>
 #include<pthread.h>
-#include<math.h>
-#include<string.h>
 #include<stdlib.h>
 #include <time.h>
 
@@ -41,11 +39,13 @@ void generateSeekMap(char *fileName,int *mp){
 	fclose(file);
 }
 
+/*
 void printSeek(int *mp,int count){
 	for(int i = 0; i <= count; i++){
 		printf("%d => %d \n", i, mp[i]);
 	}
 }
+*/
 
 enum { NS_PER_SECOND = 1000000000 };
 
@@ -76,9 +76,9 @@ int main(int argc, char *argv[])
 	int *mp;
 	key_t key_main, key_data;
 	key_main = ftok("main_sched.c", 0x45);
-	printf("%d \n",key_main);
+	//printf("%d \n",key_main);
 	key_data = ftok("p1_sched.c",51);
-	printf("%d \n",key_data);
+	//printf("%d \n",key_data);
 	
 	//int shmid;
 	int shm_id_main = shmget(ftok("p1_sched.c",51), sizeof(proc_data), 0666 | IPC_CREAT);
@@ -121,11 +121,11 @@ int main(int argc, char *argv[])
 	mp = (int *) shmat(shm_id_seek,NULL,0);
 	//shared_memory->mp = (int * ) malloc(sizeof(int) * (count + 1));
 	generateSeekMap(fileName,mp);
-	printf("Done making seekmap \n");
+	//printf("Done making seekmap \n");
    	shared_memory->finished[0] = 0;
 	shared_memory->finished[1] = 0;
-	sem_init(&shared_memory->mutex[0],0,0);
-	sem_init(&shared_memory->mutex[1],0,0);
+	//sem_init(&shared_memory->mutex[0],0,0);
+	//sem_init(&shared_memory->mutex[1],0,0);
 
 	clock_t wt_st[2];
 	clock_t wt_en[2];
@@ -140,17 +140,17 @@ int main(int argc, char *argv[])
 	int flag = 0;
 	pid_t p1_pid, p2_pid;
 	pid_t pid_kill;
-	printf("Done setting up shared memory \n");
+	//printf("Done setting up shared memory \n");
 	if(p1_pid = fork()){
 		if(p2_pid = fork()){
 			//main parent
-			printf("In parent \n");
+			//printf("In parent \n");
 			pid_kill = p1_pid;
 			kill(p1_pid,SIGSTOP);
 			wt_st[0] = clock();
 			kill(p2_pid,SIGSTOP);
 			wt_st[1] = clock();
-			printf("%d %d \n", p1_pid,p2_pid);
+			//printf("%d %d \n", p1_pid,p2_pid);
 			while(1){
 				//check if p1 and p2 finished
 				if(shared_memory->finished[0] && shared_memory->finished[1])
@@ -186,7 +186,7 @@ int main(int argc, char *argv[])
 					}
 				}
 				printf("Scheduling process %d\n", pid_kill);
-				printf("Run time for P1 and P2: %lf %lf \n", time_log->run_time[0], time_log->run_time[1]);
+				//printf("Run time for P1 and P2: %lf %lf \n", time_log->run_time[0], time_log->run_time[1]);
 				clock_gettime(CLOCK_REALTIME,&switch_st[flag]);
 				kill(pid_kill, SIGCONT);
 				clock_gettime(CLOCK_REALTIME,&switch_en[flag]);

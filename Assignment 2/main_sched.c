@@ -40,11 +40,30 @@ void generateSeekMap(char *fileName,int *mp){
 	}
 	fclose(file);
 }
-
+/*
 void printSeek(int *mp,int count){
 	for(int i = 0; i <= count; i++){
 		printf("%d => %d \n", i, mp[i]);
 	}
+}
+*/
+enum { NS_PER_SECOND = 1000000000 };
+
+void sub_timespec(struct timespec t1, struct timespec t2, struct timespec *td){
+    td->tv_nsec = t2.tv_nsec - t1.tv_nsec;
+    td->tv_sec  = t2.tv_sec - t1.tv_sec;
+    if (td->tv_sec > 0 && td->tv_nsec < 0)
+    {
+    	printf("Trig sub 1\n");
+        td->tv_nsec += NS_PER_SECOND;
+        td->tv_sec--;
+    }
+    else if (td->tv_sec < 0 && td->tv_nsec > 0)
+    {
+    	printf("Trig sub 2\n");
+        td->tv_nsec -= NS_PER_SECOND;
+        td->tv_sec++;
+    }
 }
 
 int main(int argc, char *argv[])
@@ -59,9 +78,9 @@ int main(int argc, char *argv[])
 	int *mp;
 	key_t key_main, key_data;
 	key_main = ftok("main_sched.c", 0x45);
-	printf("%d \n",key_main);
+	//printf("%d \n",key_main);
 	key_data = ftok("p1_sched.c",51);
-	printf("%d \n",key_data);
+	//printf("%d \n",key_data);
 	
 	//int shmid;
 	int shm_id_main = shmget(ftok("p1_sched.c",51), sizeof(proc_data), 0666 | IPC_CREAT);
@@ -104,31 +123,32 @@ int main(int argc, char *argv[])
 	mp = (int *) shmat(shm_id_seek,NULL,0);
 	//shared_memory->mp = (int * ) malloc(sizeof(int) * (count + 1));
 	generateSeekMap(fileName,mp);
-	printf("Done making seekmap \n");
+	//printf("Done making seekmap \n");
    	shared_memory->finished[0] = 0;
 	shared_memory->finished[1] = 0;
-	sem_init(&shared_memory->mutex[0],0,0);
-	sem_init(&shared_memory->mutex[1],0,0);
+	//sem_init(&shared_memory->mutex[0],0,0);
+	//sem_init(&shared_memory->mutex[1],0,0);
 
 	clock_t wt_st[2];
 	clock_t wt_en[2];
-	clock_t switch_st[2];
-	clock_t switch_en[2];
+// 	clock_t switch_st[2];
+// 	clock_t switch_en[2];
+	struct timespec switch_st[2],switch_en[2],delta;
 
 	pid_t p1_pid, p2_pid;
 	pid_t pid_kill;
-	printf("Done setting up shared memory \n");
+	//printf("Done setting up shared memory \n");
 	if(p1_pid = fork()){
 		if(p2_pid = fork()){
 			//main parent
-			printf("In parent \n");
+			//printf("In parent \n");
 			pid_kill = p1_pid;
 			kill(p1_pid,SIGSTOP);
 			wt_st[0] = clock();
 			kill(p2_pid,SIGSTOP);
 			wt_st[1] = clock();
-			printf("%d %d \n", p1_pid,p2_pid);
-			printf("Going to kill %d \n",pid_kill);			
+			//printf("%d %d \n", p1_pid,p2_pid);
+			//printf("Going to kill %d \n",pid_kill);			
 			while(1){
 				//check if p1 and p2 finished
 				if(shared_memory->finished[0] && shared_memory->finished[1])
@@ -137,11 +157,23 @@ int main(int argc, char *argv[])
 				for(int i=0; i<2; i++){
 					if(!shared_memory->finished[i]){
 						printf("Scheduling %d currently \n",pid_kill);
+						clock_gettime(CLOCK_REALTIME,&switch_st[i]);
 						kill(pid_kill,SIGCONT);
+						clock_gettime(CLOCK_REALTIME,&switch_en[i]);
+						sub_timespec(switch_st[i],switch_en[i],&delta);
+						time_log->switch_time[i].tv_sec += (int)delta.tv_sec;
+						time_log->switch_time[i].tv_nsec += delta.tv_nsec; 
+
 						wt_en[i] = clock();
 						time_log->wt_time[i] += ((double)(wt_en[i]-wt_st[i]))/CLOCKS_PER_SEC;
 						usleep(TQ);
+						clock_gettime(CLOCK_REALTIME,&switch_st[i]);
 						kill(pid_kill,SIGSTOP);
+						clock_gettime(CLOCK_REALTIME,&switch_en[i]);
+						sub_timespec(switch_st[i],switch_en[i],&delta);
+						time_log->switch_time[i].tv_sec += (int)delta.tv_sec;
+						time_log->switch_time[i].tv_nsec += delta.tv_nsec; 
+
 						if(pid_kill == p1_pid){
 							wt_st[0] = clock();
 							pid_kill = p2_pid;
@@ -169,10 +201,13 @@ int main(int argc, char *argv[])
 			printf("Waiting time for P2: %lf\n", time_log->wt_time[1]);
 			printf("Average Turnaround Time: %lf\n", (time_log->ta_time[0] + time_log->ta_time[1])/2 );
 			printf("Average Waiting Time: %lf\n", (time_log->wt_time[0] + time_log->wt_time[1])/2 );
-
+			printf("Switching overhead for P1: %d.%.9lds\n",(int)time_log->switch_time[0].tv_sec,time_log->switch_time[0].tv_nsec);
+			printf("Switching overhead for P2: %d.%.9lds\n",(int)time_log->switch_time[1].tv_sec,time_log->switch_time[1].tv_nsec);			
 			if(shmctl(shm_time_logging, IPC_RMID, NULL) == -1){
 				exit(1);
 			}
+			
+			
 
 			// wait(&s1);
 			// wait(&s2);

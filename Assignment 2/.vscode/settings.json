@@ -1,0 +1,7 @@
+{
+    "files.associations": {
+        "errno.h": "c",
+        "wait.h": "c",
+        "semaphore.h": "c"
+    }
+}

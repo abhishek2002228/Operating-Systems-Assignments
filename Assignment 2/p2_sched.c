@@ -1,8 +1,6 @@
 #include<stdio.h>
 #include<assert.h>
 #include<pthread.h>
-#include<math.h>
-#include<string.h>
 #include<stdlib.h>
 
 #include <sys/ipc.h>
@@ -38,7 +36,7 @@ void *thread_worker(void * args ){
 		perror("Error in attaching shm flags\n");
 		exit(1);
 	}
-	printf("thread number %d waiting for shared memory to be filled\n", t_if->thread_num);
+	//printf("thread number %d waiting for shared memory to be filled\n", t_if->thread_num);
 	while(q[t_if->thread_num] != 1){
 		;
 	}
@@ -54,7 +52,7 @@ void *thread_worker(void * args ){
 	//sem_wait(&t_if->mutex);
 	pthread_mutex_lock(&mutex);
 	sum += thread_sum;
-	printf("P2 sum is %lld \n",sum);
+	//printf("P2 sum is %lld \n",sum);
 	pthread_mutex_unlock(&mutex);
 
 	//printf("\n");
@@ -84,15 +82,15 @@ int main(int argc, char const *argv[]){
 		perror("Error in shmget P2_flags \n");
 		exit(1);
 	}
-	printf("P2 attached flags memory \n");
-	printf("P2 File name is %s and no of ints are %d \n",fileName,count);
+	//printf("P2 attached flags memory \n");
+	//printf("P2 File name is %s and no of ints are %d \n",fileName,count);
 	int tc = THREAD_COUNT;
-	printf("P2 No of threads is %d \n",tc);
+	//printf("P2 No of threads is %d \n",tc);
 	int chunkSize = (count%tc == 0) ?count/tc : count/tc + 1;
 	pthread_t thread[tc];
 	sum = 0;
 	int sp = 0;
-	printf("P2 BR4 \n");
+	//printf("P2 BR4 \n");
 	clock_t st_time, en_time;
 	st_time = clock();
 	for(int j = 0; j < tc; j++){
@@ -103,7 +101,7 @@ int main(int argc, char const *argv[]){
 		ti->sp = sp;
 		ti->ep = sp + chunkSize;
 		sp += chunkSize;
-		ti->mutex = shared_memory->mutex[1];
+		//ti->mutex = shared_memory->mutex[1];
 		ti->thread_num = j;
 		// printf("P2 Making threads\n");
 		pthread_create(&thread[j],NULL,thread_worker,ti);
@@ -112,7 +110,6 @@ int main(int argc, char const *argv[]){
 	for(int j = 0; j < tc; j++){
 		pthread_join(thread[j],NULL);
 	}
-	printf("P2 Done \n");
 	printf("Sum  %lld \n",sum);
 	en_time = clock();
 	double ta_time = ((double)(en_time-st_time))/CLOCKS_PER_SEC;

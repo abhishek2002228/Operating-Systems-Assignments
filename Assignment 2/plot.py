@@ -1,17 +1,16 @@
 import matplotlib.pyplot as plt
-import numpy as np
 
 filename = input("Enter filename to plot the graph for ")
 f = open(filename, "r")
 
-x = [2**x for x in range(5)]
+x = [100, 1000, 5000, 100000, 500000, 1000000]
 y = []
 for val in f:
 	if val != " ":
-		y.append(float(val.strip()))
+		y = (val.split(" "))
 f.close()
 plt.plot(x, y)
-plt.xlabel("No of threads ")
+plt.xlabel("Workload ")
 plt.ylabel("Time taken in seconds ")
 plt.show()
 

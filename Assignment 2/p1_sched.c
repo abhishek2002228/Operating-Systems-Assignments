@@ -1,8 +1,6 @@
 #include<stdio.h>
 #include<assert.h>
 #include<pthread.h>
-#include<math.h>
-#include<string.h>
 #include<stdlib.h>
 #include <time.h>
 
@@ -37,9 +35,6 @@ void generateSeekMap(char *fileName,int *mp){
 	while(!feof(file)){
 		fscanf(file,"%d",&temp);
 		t = ftell(file);
-		if(def_print){
-			printf("Starting point at i %d and sp is %d\n",i+1,t);
-		}
 		mp[i+1] = t;
 		i++;
 	}
@@ -50,10 +45,6 @@ void *thread_worker(void * args ){
 	thread_info *t_if =  (thread_info *)args;
 	FILE* file = fopen(t_if->fileName,"r");
 	int *p;
-	if(def_print){
-		printf("Reading on %d \n",t_if->thread_id);
-		printf("No read so far %d \n",read);
-	}
 	if(file == NULL){
 		printf("Error opening file \n");
 		exit(1);
@@ -81,9 +72,6 @@ void *thread_worker(void * args ){
 	for(i = t_if->sp; i < t_if->ep  && i < count;i++){	
         // sem_wait(&t_if->mutex);
 		fscanf(file,"%d",&temp);
-		if(def_print){
-			printf("%d \n",temp);
-		}
 		p[i] = temp;
 		// printf("P1 working \n");
 		//sum += temp;
@@ -93,20 +81,17 @@ void *thread_worker(void * args ){
 
 		read++;
 	}
-	printf("end point %d \n",i);
 	fclose(file);
 	q[t_if->thread_num] = 1;
-	if(def_print){
-		printf("\n");
-	}
 }
 
+/*
 void printSeek(int *mp,int count){
 	for(int i = 0; i <= count; i++){
 		printf("%d => %d \n", i, mp[i]);
 	}
 }
-
+*/
 int main(int argc, char const *argv[]){
 	int shm_time_logging = shmget(ftok("main_sched.c", 51), sizeof(time_logging), 0666);
 	if(shm_time_logging == -1){
@@ -134,7 +119,7 @@ int main(int argc, char const *argv[]){
 		exit(1);
 	}
 	shared_memory = (proc_data *) shmat(shm_id_main, NULL, 0);
-	printf("Main shared memory attached \n");
+	//printf("Main shared memory attached \n");
 	//shared_memory = (proc_data *) malloc(sizeof(proc_data));
 	//shared_memory = (proc_data *) shmat(shmget(ftok("main_sched.c", 0x45), sizeof(proc_data), 0666), NULL, 0); // creating shared memory
 
@@ -152,13 +137,13 @@ int main(int argc, char const *argv[]){
       perror("Error in shmget P1 \n");
       exit(1);
     }
-	printf("P1 attached transfer data memory \n");
+	//printf("P1 attached transfer data memory \n");
 
 	if((shmid_flags = shmget(ftok("p2_sched.c", 52), (THREAD_COUNT)*sizeof(int), 0666)) == -1){
 		perror("Error in shmget P1_flags \n");
 		exit(1);
 	}
-	printf("P1 attached flags memory \n");
+	//printf("P1 attached flags memory \n");
 	int shm_id_seek = shmget(ftok("p2_sched.c",44),(count+1)*sizeof(int),0666|IPC_CREAT);
 	if(shm_id_seek == -1){
 		perror("Error in shmget seek");
@@ -168,8 +153,8 @@ int main(int argc, char const *argv[]){
 	//printf("Ready to make map \n");
     //int *mp = (int * ) malloc(sizeof(int) * (count + 1));
     //generateSeekMap(fileName,mp);
-	printf("P1 BR5 \n");
-	printf("P1 File name is %s and no of ints are %d \n",fileName,count);
+	//printf("P1 BR5 \n");
+	//printf("P1 File name is %s and no of ints are %d \n",fileName,count);
     int tc = THREAD_COUNT;
 
     //int chunkSize = count/tc;
@@ -177,10 +162,10 @@ int main(int argc, char const *argv[]){
     //printf("No of threads is %d  and chunk size is %d \n",tc,chunkSize);
 
     pthread_t thread[tc];
-    printf("P1 No of threads %d \n",tc);
+    //printf("P1 No of threads %d \n",tc);
     read = 0;
     int sp = 0;
-    printf("P1 Ready to make threads \n");
+    //printf("P1 Ready to make threads \n");
 	clock_t st_time, en_time;
 	st_time = clock();
     for(int j = 0; j < tc; j++){
@@ -200,7 +185,7 @@ int main(int argc, char const *argv[]){
         // printf("P1 okay so far 180\n");
         sp += chunkSize;
         // printf("P1 okay just far \n");
-		ti->mutex = shared_memory->mutex[0];
+		//ti->mutex = shared_memory->mutex[0];
 		ti->thread_num = j;
 		// printf("Make one \n");
         // printf("start point is %d and ends at %d \n",ti->sp,ti->ep);
